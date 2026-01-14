@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Dublin Bus Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --border: #e2e2e2;
+      --text: #1a1a1a;
+      --text-muted: #6a6a6a;
+      --accent: #111111;
+      --accent-hover: #2b2b2b;
+      --radius: 10px;
+      --shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    :root.dark {
+      --bg: #111;
+      --surface: #1a1a1a;
+      --border: #333;
+      --text: #f0f0f0;
+      --text-muted: #b0b0b0;
+      --accent: #eaeaea;
+      --accent-hover: #fff;
+      --shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-right: 20px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .field-input {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: #fff;
+      min-width: 90px;
+    }
+
+    .primary-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .primary-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    #status {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    #map {
+      height: calc(100vh - 80px);
+    }
+
+    .legend {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+      width: 180px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .legend-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    .drawer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.05);
+      padding: 20px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .drawer.open {
+      transform: translateY(0);
+    }
+
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .drawer-content {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-title">Dublin Bus Explorer</div>
+    <div class="brand-subtitle">Route connectivity & live vehicles</div>
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <span class="field-label">Route</span>
+      <input id="routeInput" class="field-input" placeholder="14" />
+    </div>
+
+    <div class="field">
+      <span class="field-label">Hops</span>
+      <input id="hopInput" class="field-input" type="number" value="1" min="0" max="3" />
+    </div>
+
+    <button id="goBtn" class="primary-btn">Explore network</button>
+  </div>
+
+  <button id="themeToggle" class="primary-btn" style="background:#444;">Dark mode</button>
+
+  <div id="status"></div>
+</header>
+
+<div id="map"></div>
+
+<div id="legend" class="legend">
+  <div class="legend-title">Routes shown</div>
+  <div id="legend-items"></div>
+</div>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-title">Route details</div>
+  <div id="drawer-content" class="drawer-content"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="js/unzip.min.js"></script>
+<script src="js/gtfs.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  const toggle = document.getElementById("themeToggle");
+  toggle.addEventListener("click", () => {
+    document.documentElement.classList.toggle("dark");
+    toggle.textContent =
+      document.documentElement.classList.contains("dark")
+        ? "Light mode"
+        : "Dark mode";
+  });
+</script>
+
+</body>
+</html>
+
