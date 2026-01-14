@@ -9,9 +9,11 @@ let GTFS = {
 };
 
 async function loadGTFS() {
-  const res = await fetch(GTFS_URL);
-  const blob = await res.blob();
-  const zip = await unzip(blob);
+  const response = await fetch(GTFS_URL);
+  const blob = await response.blob();
+
+  const reader = new zip.ZipReader(new zip.BlobReader(blob));
+  const entries = await reader.getEntries();
 
   function parseCSV(text) {
     const lines = text.trim().split("\n");
@@ -24,12 +26,27 @@ async function loadGTFS() {
     });
   }
 
-  GTFS.routes = parseCSV(await zip["routes.txt"].text());
-  GTFS.trips = parseCSV(await zip["trips.txt"].text());
-  GTFS.stop_times = parseCSV(await zip["stop_times.txt"].text());
-  GTFS.stops = parseCSV(await zip["stops.txt"].text());
-  GTFS.shapes = parseCSV(await zip["shapes.txt"].text());
+  for (const entry of entries) {
+    if (entry.filename === "routes.txt") {
+      GTFS.routes = parseCSV(await entry.getData(new zip.TextWriter()));
+    }
+    if (entry.filename === "trips.txt") {
+      GTFS.trips = parseCSV(await entry.getData(new zip.TextWriter()));
+    }
+    if (entry.filename === "stop_times.txt") {
+      GTFS.stop_times = parseCSV(await entry.getData(new zip.TextWriter()));
+    }
+    if (entry.filename === "stops.txt") {
+      GTFS.stops = parseCSV(await entry.getData(new zip.TextWriter()));
+    }
+    if (entry.filename === "shapes.txt") {
+      GTFS.shapes = parseCSV(await entry.getData(new zip.TextWriter()));
+    }
+  }
+
+  await reader.close();
 }
+
 
 function getTripsForRoute(routeId) {
   return GTFS.trips.filter(t => t.route_id === routeId);
